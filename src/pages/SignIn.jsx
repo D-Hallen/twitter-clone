@@ -1,10 +1,41 @@
 import { App } from "../layouts/App"
 import {useForm} from 'react-hook-form'
+import { useNavigate } from "react-router-dom";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
-export const SignIn = () => {
+import { useState } from "react";
+
+
+export const SignIn = (props) => {
+    // eslint-disable-next-line react/prop-types
+    const {logInData} = props
+    const navigate = useNavigate()
     const {register, handleSubmit, formState: {errors}} = useForm();
+    // eslint-disable-next-line no-unused-vars
+    const [requesting, setRequesting] = useState(false);
+    const [error, setError] = useState(null);
+
+    const setErrorMessage = message => {
+        if (message) {
+            setError(message);
+            setTimeout(() => setError(null), 10000);
+        }
+    }
+
+
     const handleFormSubmit = ({email, password}) => {
-        console.log ("Criando conta... ",email, password)
+        setRequesting(true);
+        const auth = getAuth();
+        signInWithEmailAndPassword(auth, email, password)
+        .then((credential) => {
+            logInData(email, password)
+            // Signed in 
+            localStorage.setItem("access-token", credential.user.accessToken);
+            // ...
+            navigate("/")
+        })
+        .catch((error) => setErrorMessage(error.message === "Firebase: Error (auth/invalid-credential)." ? "Email ou senha inválidos" : error.message))
+        .finally(() => setRequesting(false));
     }
 
     return (
@@ -26,6 +57,7 @@ export const SignIn = () => {
                             className= {`placeholder-slate-400 border border${errors.password?.type === "required" ? "-red-500" : "-slate-400"} rounded p-2`} 
                             placeholder="Senha"/>
                         {/* {errors.password?.type === "required" && <span className="text-red-500">O campo senha é obrigatório</span>} */}
+                        {error && <span className="text-red-500">{error}</span>}
 
                         <button className="bg-emerald-500 hover:bg-emerald-600 text-slate-100 items-center w-full h-10 mt-5 rounded">Acessar Plataforma</button>
                     </form>
